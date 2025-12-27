@@ -1,0 +1,122 @@
+[
+  {
+    "name": "ASP.NET_SessionId",
+    "value": "kv3qn41zljst0jltnxygndx1",
+    "domain": "www.webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "sessionuade",
+    "value": "2516691136.47873.0000",
+    "domain": "www.webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga",
+    "value": "GA1.1.1171054997.1764727455",
+    "domain": ".uade.edu.ar",
+    "path": "/",
+    "expires": 1799287455.07624,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__utma",
+    "value": "182351009.1171054997.1764727455.1764727455.1764727455.1",
+    "domain": ".webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": 1799287469.430167,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__utmc",
+    "value": "182351009",
+    "domain": ".webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__utmz",
+    "value": "182351009.1764727455.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)",
+    "domain": ".webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": 1780495469,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__utmt",
+    "value": "1",
+    "domain": ".webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": 1764728055,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "WebCampusAADCookie",
+    "value": "k8fPUo_LLfxLatsoGnJt0xI-KDQHQ0HKaucAo_gjh8QTO8hq4gFNAEt5bnbsgToJkPch1SGJTnsO5WYwtLJD9wTf0PPAHeN3_4vsrqYIIbHfcfoyydlGE7IchwsU3TbXMJBoD1iqvsq6BvhcMHgIyMkcy7t6doBS3OmzeZcYmSz6MR7fGN6pbsG3jGW4eJodL_hR4iSGizJdxbaM38yAeCcFFKVtfGQT-JfUREGT7qfu91U9hQa4m4_LpMLP0QHg_r_eFDFnjs6E0-PM8I4ErMRvBasK0d7U3TiYl4xfJnbJN-tDcH27860V-mT68vPyvKta30j2mW5glVA2Y7WWQx6GYY8fpwun3XXYkSNHm2QW87xb7Gn2t_b2CVVqOJ-GO8x4kIBfdcP2ScjWR7PoLZRK9O8QT4bir9Vlttv16ii77ETPeUkJhd08ED1-may3KQ-zZGoceKBLTVwufD1B0LnvJZRVYs_d8jyYT-bYFAKm7MDFciuSHjEwsM9e1V8nBzWDU65WLzAzaImktnAKYY0jZ9Ld7vLslvj5rtYnFCTXis5XmVx1RLWuuNSYFtIfexL1u125k_8153dJBZZp8PtiplTzd2Uysv_hDNaMzfnElFLYGdPUXvhEnOiJsGA7M8Exriv0asVf0ZHNnOqrjFlVq61-T-cnrGkKx1gxcFNrkN_lQZA0fFqomLupgjQiII7-AtED3HALPpwVrpww-f8ifs1D8d2gP5sleWTvZo0vbWLtIcckoxA2KD6ghiU25oyZ2lJvWwXt315dswRmyYexifY3rGq63uRYES4gUbhMwvBMzFXz1833EBy4n_qJXjmzQdldUOmhHKqZPeDamxtPLo3yW6o72YFbPVvPoLtP8VAz2O0mTT3Y7b4Tbgh1YP_c3ISKYboIjTfNIt0VSFi7Togin0JoAzBLyg8vpGLYysI1ZEk-GjOhjh02L4tBEBSL8IxAeJJsDu0vKcTmdk6PUTy8xV2CC9gzcZZmt_QjLHqzPINIfLW-3vdlPJw4FaLpF-qGtmmFXY9W65AVh7aWq8dO7HLpnLn2AOAiyQ8fA5vta0c00I-6wjxyvvMW9nWNSSff7A8vDULv-5XYEthWwuuD-h9NIVNtfQa27_0SGV15l4w-Flv52PvFY8jRmsBK_rP2uexP08w9ossEuiPa-bxwTvTSmooCwzTpPJez-2zoDTqYTdhJ0mO0Ybr-tZGB3vJQq4EmPA3W15uUvd4ZXG5kj-WantKaXdeJVth23GaUNDRcc7xi7cFitDcqRHVuPnI9O2Ezafhifl1wxr3edHEbqs4FR97LdGSN-lXbQJrx8XFl0PdEjV3he3V6rIR0MQZd6ATbfPxfq5T6MCEKJExi7cxHZ_Zx8V1gOXH4Xjd5AZn0mMC8jE1rWmKKey4CVUePZRvy7x1ClH9kZx4MXcxaJ8jTuJx96SMiGW2z9vgS6tQkj5wpZlAzwmBGvKlxzda3434jwmAbHaR44lVhJhxhxyrIPfFzTCEMhJ-wiK6DPcKMGh3hhmvKzuiP5QKvrnAPrinD3xIuDM-XpElk6wswy21bWAwxg_3201_r57gxXX0HX1JqdVkUWKwvCO5yYJTnTq66b2Cqty3cgxBixrLz_0kkJWmkFsjeRmYLyFYZ",
+    "domain": "www.webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "TS017408f6",
+    "value": "01b9a06c669989eecbdf04642dc54fb0a98c3b727626d79c701a76f2f064f4c1873f3762beb82e3291cbf7ab31e3e95c34ce4d19937e9e52d43f4f3d45e7cbfcecfa6ae555dd0069830a4baa520bc1a3b0894d5dff6405a361c76ecdcf01a17e9383f4f3d06387379d149d7702874e3dd3cc37e8355ea68f4112c4c582c3a6fc8d3332f88d",
+    "domain": "www.webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_5VF815FN5E",
+    "value": "GS2.1.s1764727455$o1$g1$t1764727469$j46$l0$h0",
+    "domain": ".uade.edu.ar",
+    "path": "/",
+    "expires": 1799287469.277178,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_QEBL34CHPL",
+    "value": "GS2.1.s1764727455$o1$g1$t1764727469$j46$l0$h0",
+    "domain": ".uade.edu.ar",
+    "path": "/",
+    "expires": 1799287469.315395,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__utmb",
+    "value": "182351009.2.10.1764727455",
+    "domain": ".webcampus.uade.edu.ar",
+    "path": "/",
+    "expires": 1764729269,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  }
+]
