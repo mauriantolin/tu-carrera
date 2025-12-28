@@ -1,9 +1,9 @@
 export const siteConfig = {
-  name: "Tu Carrera",
+  name: "Titulito",
   url: "https://tu-carrera.vercel.app/",
   ogImage: "https://ui.shadcn.com/og.jpg",
   description:
-    "Tu Carrera es una plataforma integral diseñada para ayudarte a planificar y gestionar tu desarrollo profesional de manera efectiva.",
+    "Titulito es una plataforma integral diseñada para ayudarte a planificar y gestionar tu desarrollo profesional de manera efectiva.",
   links: {
     twitter: "https://twitter.com/mauriantolin",
     github: "https://github.com/mauriantolin",

@@ -23,17 +23,18 @@ import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, GraduationCap, Sparkle
 import { Button } from "@workspace/ui/components/button"
 import Link from "next/link"
 import BackgroundGrid from "@/components/background-grid"
+import Image from "next/image"
 
-const title = "Tu Carrera - Plan de Estudios y Recursos"
+const title = "Titulito - Plan de Estudios y Recursos"
 const description =
   "Explora el plan de estudios completo de tu carrera en UADE. Accede a materias, programas, recursos y más para potenciar tu formación académica."
 
 const dictionary = {
 		es: {
 				alert: "Planificá tu futuro académico",
-				title: "Tu Plan de Estudios ",
+				title: "Conseguí tu título de forma ",
 				title_span: "inteligente",
-				description: "Organizá tus materias, seguí tu progreso y descubrí qué podés cursar en cada cuatrimestre con nuestro visualizador interactivo.",
+				description: "Organizá tus materias, seguí tu progreso y habla con Titulín para ver que podés cursar.",
 				action: "Comenzar gratis",
 				action_info: "Ver cómo funciona",
 				features: {
@@ -45,6 +46,14 @@ const dictionary = {
 							description: "Diagrama interactivo que muestra las correlativas y dependencias entre materias de forma visual e intuitiva.",
 						},
 						{
+							title: "Titulín, tu asistente virtual",
+							description: "Un asistente virtual con toda la información de tu carrera.",
+						},
+						{
+							title: "Correlativas",
+							description: "Charlá con Titulín para ver las materias que podés cursar.",
+						},
+						{
 							title: "Seguimiento de Progreso",
 							description: "Marcá las materias cursadas y visualizá automáticamente cuáles están disponibles para cursar.",
 						},
@@ -53,16 +62,8 @@ const dictionary = {
 							description: "Planes de estudio de UADE, para todas las facultades y todas las carreras.",
 						},
 						{
-							title: "Sistema de Votación",
-							description: "Votá las materias según tu experiencia y ayudá a otros estudiantes a planificar mejor.",
-						},
-						{
 							title: "Información Detallada",
 							description: "Accedé a los contenidos y detalles de cada materia con un simple click.",
-						},
-						{
-							title: "Exportar y Compartir",
-							description: "Exportá tu plan de estudios como imagen para compartir o guardar tu progreso.",
 						},
 					],
 				},
@@ -87,11 +88,11 @@ const dictionary = {
 				},
 				faq: {
 					heading: "Preguntas frecuentes",
-					description: "Todo lo que necesitás saber sobre TuCarrera",
+					description: "Todo lo que necesitás saber sobre Titulito",
 					items: [
 						{
 							question: "¿Es realmente gratis?",
-							answer: "Sí, TuCarrera es completamente gratis y no requiere registro. Podés usar las mejores funcionalidades sin costo alguno.",
+							answer: "Sí, titulito es completamente gratis y no requiere registro. Podés usar las mejores funcionalidades con AI sin costo alguno.",
 						},
 						{
 							question: "¿Qué universidades están disponibles?",
@@ -125,8 +126,7 @@ const dictionary = {
 						title: "Recursos",
 						links: [
 							{ text: "FAQ", href: "#faq" },
-							{ text: "Guía de uso", href: "#" },
-							{ text: "Contacto", href: "#" },
+							{ text: "Contacto", href: "mailto: mauricioaantolin@gmail.com" },
 						],
 					},
 					legal: {
@@ -136,7 +136,7 @@ const dictionary = {
 							{ text: "Privacidad", href: "#" },
 						],
 					},
-					copyright: "© 2025 TuCarrera.com.ar - Todos los derechos reservados",
+					copyright: "© 2025 titulito.com - Todos los derechos reservados",
 				},
 		},
 }
@@ -321,9 +321,9 @@ export default function RootPage() {
 							<div className="space-y-4">
 								<div className="flex items-center gap-3">
 									<div className="rounded-lg bg-foreground p-2">
-										<GraduationCap className="h-5 w-5 text-background" />
+										<Image src="/assets/logo.png" alt="Logo de Titulito" width={40} height={40}/>
 									</div>
-									<span className="text-xl font-bold text-foreground">TuCarrera</span>
+									<span className="text-xl font-bold text-foreground">Titulito</span>
 								</div>
 								<p className="text-sm text-muted-foreground leading-relaxed">
 									{dictionary.es.footer.brand}
