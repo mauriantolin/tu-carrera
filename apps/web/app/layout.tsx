@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
-  keywords: ["Carrera", "Facultad", "UADE", "Plan de Estudios"],
+  keywords: ["Carrera", "Facultad", "UADE", "Plan de Estudios", "Titulo"],
   authors: [
     {
       name: "mauriantolin",

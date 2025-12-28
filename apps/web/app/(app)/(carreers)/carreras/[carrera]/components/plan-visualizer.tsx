@@ -16,6 +16,7 @@ import { useEffect, useMemo, useCallback } from 'react'
 import type { PlanVisualizerProps } from './page-content'
 import { SubjectInfoDialog } from './subject-dialog'
 import { SubjectNode } from './subject-node'
+import { YearGroupNode } from './year-group-node'
 import { FloatingToolbarClient } from './floating-toolbar'
 import { ProgressPanel } from './progress-panel'
 import { useStudyPlanInit, useStudyPlan } from '@/hooks/use-study-plan'
@@ -48,6 +49,7 @@ const MARKER_SHAKING = {
 
 const nodeTypes: NodeTypes = {
   subject: SubjectNode,
+  yearGroup: YearGroupNode,
 }
 
 export function ReactFlowPlan({ curriculum, carreraInfo }: PlanVisualizerProps) {
@@ -90,7 +92,26 @@ export function ReactFlowPlan({ curriculum, carreraInfo }: PlanVisualizerProps) 
   // ÚNICO useEffect: crear nodes/edges SOLO cuando cambia curriculum (mount inicial)
   // El estado visual (isCompleted, isAvailable, etc.) se maneja en nodesWithState
   useEffect(() => {
-    const initialNodes: Node[] = curriculum.subjects.map(subject => {
+    // Crear nodos de grupo por año PRIMERO (z-index bajo, detrás de todo)
+    const groupNodes: Node[] = curriculum.yearBounds.map(bounds => ({
+      id: `year-group-${bounds.year}`,
+      type: 'yearGroup',
+      position: { x: bounds.minX, y: bounds.minY },
+      data: {
+        label: bounds.label,
+        year: bounds.year,
+      },
+      style: {
+        width: bounds.width,
+        height: bounds.height,
+        zIndex: -1,
+      },
+      selectable: false,
+      draggable: false,
+    }))
+
+    // Crear nodos de materias DESPUÉS (encima de los grupos)
+    const subjectNodes: Node[] = curriculum.subjects.map(subject => {
       const handlers = getHandlers(subject.id)
       return {
         id: subject.id,
@@ -112,8 +133,12 @@ export function ReactFlowPlan({ curriculum, carreraInfo }: PlanVisualizerProps) 
           ...handlers,
         },
         draggable: true,
+        style: { zIndex: 1 },
       }
     })
+
+    // Combinar: grupos primero, luego subjects
+    const initialNodes = [...groupNodes, ...subjectNodes]
 
     const initialEdges: Edge[] = curriculum.subjects.flatMap(subject =>
       (subject.correlativas || [])
@@ -137,6 +162,9 @@ export function ReactFlowPlan({ curriculum, carreraInfo }: PlanVisualizerProps) 
   // Estado visual de nodos derivado con useMemo (NO useEffect)
   const nodesWithState = useMemo(() =>
     nodes.map(node => {
+      // Skip year group nodes - no tienen estado visual dinámico
+      if (node.type === 'yearGroup') return node
+
       const isCompleted = completedSubjects.has(node.id)
       const isAvailable = availableSubjects.has(node.id)
       const isBlocked = !isCompleted && !isAvailable

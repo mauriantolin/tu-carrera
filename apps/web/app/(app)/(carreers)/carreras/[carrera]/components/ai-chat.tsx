@@ -70,7 +70,7 @@ export function AIChat({ open, onOpenChange, careerId }: AIChatProps) {
         <SheetHeader className="p-4 border-b bg-primary/5">
           <SheetTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Asistente Académico
+            Titulín
           </SheetTitle>
         </SheetHeader>
 

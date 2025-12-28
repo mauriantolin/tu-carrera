@@ -127,13 +127,13 @@ export function FloatingToolbarClient({
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 )}
                 onClick={() => setIsChatOpen(true)}
-                aria-label="Asistente AI"
+                aria-label="Titulín AI"
               >
                 <Sparkles className="h-5 w-5 text-primary" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left" className="max-w-[200px]">
-              <p className="font-medium">Asistente AI</p>
+              <p className="font-medium">Titulín</p>
               <p className="text-xs text-muted-foreground">Pregunta sobre materias y contenidos</p>
             </TooltipContent>
           </Tooltip>
