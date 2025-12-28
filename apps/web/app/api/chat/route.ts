@@ -35,7 +35,7 @@ IMPORTANTE: Usa esta información para dar consejos personalizados. Si el estudi
 
   const result = streamText({
     model: openai('gpt-4o-mini'),
-    system: `Eres un asistente académico experto de la universidad UADE.
+    system: `Eres un asistente académico experto de la universidad UADE llamado Titulín.
 Ayudas a estudiantes con información estratégica sobre materias, contenidos, correlativas y planificación académica.
 Responde en español, de forma clara y con contexto útil.
 
@@ -69,7 +69,7 @@ INSTRUCCIONES:
       buscar_materias_por_anio: {
         description: 'Busca todas las materias de un año específico de la carrera. Útil para preguntas como "materias de 4to año" o "qué materias hay en primer año"',
         inputSchema: z.object({
-          anio: z.string().describe('Año de la carrera (1, 2, 3, 4, 5)'),
+          anio: z.string().describe('Año de la carrera (1, 2, 3, 4, 5, 6, 7, 8)'),
         }),
         execute: async ({ anio }: { anio: string }) => {
           if (!careerId) {

@@ -6,11 +6,21 @@ import type { MateriaWithRelations, Correlativa } from './types'
 
 export type Subject = Omit<MateriaWithRelations, 'carrera'> & {position: { x: number, y: number }}
 
+export interface YearBounds {
+  year: string
+  label: string
+  minX: number
+  minY: number
+  width: number
+  height: number
+}
+
 export interface ProcessedCurriculum {
   subjects: Subject[]
   dependentsMap: Record<string, string[]>
   maxYear: number
   maxCuatrimestre: number
+  yearBounds: YearBounds[]
 }
 
 export interface SubjectPriority {
@@ -110,6 +120,73 @@ export function subjectPositions(subjects: Subject[]): Map<string, { x: number; 
   })
 
   return positions
+}
+
+// =============================================================================
+// YEAR BOUNDS CALCULATION
+// =============================================================================
+
+const YEAR_LABELS: Record<string, string> = {
+  '1': 'Primer Año',
+  '2': 'Segundo Año',
+  '3': 'Tercer Año',
+  '4': 'Cuarto Año',
+  '5': 'Quinto Año',
+  '6': 'Sexto Año',
+}
+
+const NODE_WIDTH = 650   // Ancho máximo de SubjectNode
+const NODE_HEIGHT = 200  // Altura estimada del nodo
+
+// Padding asimétrico para el grupo
+const PADDING_LEFT = 40    // Más espacio a la izquierda para el label
+const PADDING_RIGHT = 100   // Un poco más a la derecha
+const PADDING_TOP = 120     // Más alto para que se lea el cartel
+const PADDING_BOTTOM = 80
+
+/**
+ * Calculates bounding boxes for each year based on subject positions
+ */
+export function calculateYearBounds(subjects: Subject[]): YearBounds[] {
+  // Agrupar materias por año
+  const byYear = new Map<string, Subject[]>()
+
+  subjects.forEach(subject => {
+    const year = subject.anio || '99'
+    if (!byYear.has(year)) {
+      byYear.set(year, [])
+    }
+    byYear.get(year)!.push(subject)
+  })
+
+  const bounds: YearBounds[] = []
+
+  byYear.forEach((yearSubjects, year) => {
+    if (yearSubjects.length === 0 || year === '99') return
+
+    // Encontrar min/max X e Y de las posiciones
+    let minX = Infinity, minY = Infinity
+    let maxX = -Infinity, maxY = -Infinity
+
+    yearSubjects.forEach(subject => {
+      minX = Math.min(minX, subject.position.x)
+      minY = Math.min(minY, subject.position.y)
+      maxX = Math.max(maxX, subject.position.x + NODE_WIDTH)
+      maxY = Math.max(maxY, subject.position.y + NODE_HEIGHT)
+    })
+
+    bounds.push({
+      year,
+      label: YEAR_LABELS[year] || `Año ${year}`,
+      minX: minX - PADDING_LEFT,
+      minY: minY - PADDING_TOP,
+      width: (maxX - minX) + PADDING_LEFT + PADDING_RIGHT,
+      height: (maxY - minY) + PADDING_TOP + PADDING_BOTTOM,
+    })
+  })
+
+  // Ordenar por año
+  return bounds.sort((a, b) => parseInt(a.year) - parseInt(b.year))
 }
 
 // =============================================================================
@@ -285,10 +362,14 @@ export function processCurriculum(materias: Omit<MateriaWithRelations, 'carrera'
   const maxYear = Math.max(...subjects.map(s => extractYearNumber(s.anio)))
   const maxCuatrimestre = Math.max(...subjects.map(s => extractCuatrimestreNumber(s.cuatrimestre)))
 
+  // Calculate year bounds for visual grouping
+  const yearBounds = calculateYearBounds(subjects)
+
   return {
     subjects,
     dependentsMap: dependentsMapRecord,
     maxYear,
-    maxCuatrimestre
+    maxCuatrimestre,
+    yearBounds,
   }
 }
