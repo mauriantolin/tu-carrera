@@ -4,7 +4,36 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@workspace/ui/components/badge"
 import { BookOpen } from "lucide-react"
 import { Subject } from '@/lib/subjects'
+import type { Contenido } from '@/lib/types'
 
+/**
+ * Splitea contenidos para display:
+ * - Si hay múltiples contenidos, los devuelve tal cual
+ * - Si hay un solo contenido, lo splitea por "." (o ";" si no hay puntos)
+ */
+function splitContenidos(contenidos: Contenido[] | undefined): { contenido: string; id: string }[] {
+  if (!contenidos || contenidos.length === 0) return []
+
+  // Si ya hay múltiples contenidos, devolverlos tal cual
+  if (contenidos.length > 1) {
+    return contenidos.map(c => ({ contenido: c.contenido, id: c.id }))
+  }
+
+  // Si hay un solo contenido, splitearlo
+  const texto = contenidos[0]?.contenido?.trim() || ''
+  if (!texto) return []
+
+  const separador = texto.includes('.') ? '.' : ';'
+  const items = texto
+    .split(separador)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+
+  return items.map((item, index) => ({
+    contenido: item,
+    id: `${contenidos[0]?.id}-${index}`
+  }))
+}
 
 interface SubjectInfoDialogProps {
   open: boolean
@@ -15,7 +44,8 @@ interface SubjectInfoDialogProps {
 export function SubjectInfoDialog({ open, onOpenChange, subject }: SubjectInfoDialogProps) {
   if (!subject) return null
 
-  const hasContenidos = subject.contenidos && subject.contenidos.length > 0
+  const displayContenidos = splitContenidos(subject.contenidos)
+  const hasContenidos = displayContenidos.length > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -36,8 +66,8 @@ export function SubjectInfoDialog({ open, onOpenChange, subject }: SubjectInfoDi
           <h4 className="text-sm font-semibold mb-3 text-foreground">Contenidos del curso:</h4>
           {hasContenidos ? (
             <ul className="space-y-2 pr-2">
-              {subject.contenidos!.map((item, index) => (
-                <li key={item.id || index} className="flex items-start gap-2">
+              {displayContenidos.map((item, index) => (
+                <li key={item.id} className="flex items-start gap-2">
                   <Badge variant="outline" className="mt-0.5 shrink-0">
                     {index + 1}
                   </Badge>
