@@ -43,27 +43,26 @@ DATOS DE LA CARRERA:
 - Duración: ${maxYear} años
 ${studentProgress}
 
-REGLA OBLIGATORIA - HERRAMIENTA obtener_materias_disponibles:
-DEBES llamar a obtener_materias_disponibles SIEMPRE que:
-- El usuario pregunte qué puede cursar, qué materias hacer, qué le conviene
-- Hables de recomendaciones de materias
-- Menciones el plan de estudios del usuario
-- Sugieras próximos pasos académicos
-- El usuario pregunte "qué me falta" o "qué sigue"
-NO respondas sobre recomendaciones sin antes consultar esta herramienta.
+REGLA OBLIGATORIA - RECOMENDACIONES DE MATERIAS:
+Cuando el usuario pregunte qué materias cursar, cuáles le convienen, o pida recomendaciones:
+1. USA obtener_mejores_materias_para_cursar - Esta herramienta combina disponibilidad + impacto + proximidad temporal
+2. Las materias que retorna YA están filtradas (no incluye aprobadas) y ordenadas por score óptimo
+3. Explica POR QUÉ cada materia es buena opción usando el campo "razon" y los scores
 
-OTRAS HERRAMIENTAS:
-- analizar_materia: Info completa de una materia específica (prerrequisitos, qué desbloquea, score).
-- obtener_materias_criticas: Materias más importantes ordenadas por impacto.
+HERRAMIENTAS DISPONIBLES:
+- obtener_mejores_materias_para_cursar: USAR para "qué me conviene", "mejores materias", "qué cursar", "materias críticas". Combina disponibilidad + impacto + proximidad.
+- obtener_materias_disponibles: Lista TODAS las materias que puede cursar ahora (con scores).
+- analizar_materia: Info completa de una materia específica.
 - buscar_materias_por_anio: Materias de un año específico.
 - buscar_contenidos: Buscar temas o conceptos específicos.
 - obtener_estructura_carrera: Estructura completa del plan.
 
-INSTRUCCIONES:
-1. NUNCA recomiendes materias que el estudiante ya aprobó.
-2. Siempre menciona qué materias desbloquea cada recomendación.
-3. Destaca materias con alto impacto (desbloquean muchas otras).
-4. Personaliza según el progreso del estudiante.`,
+REGLAS CRÍTICAS:
+1. NUNCA recomiendes materias que el estudiante ya aprobó - están listadas arriba en "Materias aprobadas"
+2. Prioriza materias de años cercanos al progreso actual, no saltes varios años
+3. Siempre menciona qué materias desbloquea cada recomendación
+4. Usa el score_final para justificar tus recomendaciones (combina impacto y proximidad)
+5. Si el usuario pregunta por "las mejores" o "qué le conviene", usa obtener_mejores_materias_para_cursar`,
     messages: convertToModelMessages(messages),
     tools: {
       buscar_materias_por_anio: {
@@ -182,53 +181,6 @@ INSTRUCCIONES:
         },
       },
 
-      obtener_materias_criticas: {
-        description: 'Obtiene las materias más importantes de la carrera ordenadas por impacto (cuántas materias desbloquean). Usar para planificación y prioridades.',
-        inputSchema: z.object({
-          limite: z.number().optional().describe('Cantidad de materias a devolver (default: 10)'),
-        }),
-        execute: async ({ limite = 10 }: { limite?: number }) => {
-          if (!careerId) {
-            return { error: 'No se especificó una carrera' }
-          }
-
-          const { data: rpcData, error: rpcError } = await supabase.rpc('obtener_materias_criticas', {
-            carrera_id_param: careerId,
-            limite,
-          })
-
-          if (!rpcError && rpcData) {
-            return rpcData
-          }
-
-          const { data: subjects } = await supabase
-            .from('materias')
-            .select('id, codigo, nombre, anio, cuatrimestre, horas')
-            .eq('carrera_id', careerId)
-
-          const { data: prerequisites } = await supabase
-            .from('correlativas')
-            .select('correlativa_codigo, materia_id')
-
-          const dependentsCount: Record<string, number> = {}
-          for (const c of prerequisites || []) {
-            dependentsCount[c.correlativa_codigo] = (dependentsCount[c.correlativa_codigo] || 0) + 1
-          }
-
-          const subjectsWithScore = (subjects || [])
-            .map((m: any) => ({
-              ...m,
-              dependientes_directos: dependentsCount[m.codigo] || 0,
-              score_importancia: (dependentsCount[m.codigo] || 0) * 2 + (maxYear - parseInt(m.anio || '1')) * 0.3,
-            }))
-            .filter((m: any) => m.dependientes_directos > 0)
-            .sort((a: any, b: any) => b.score_importancia - a.score_importancia)
-            .slice(0, limite)
-
-          return subjectsWithScore
-        },
-      },
-
       obtener_materias_disponibles: {
         description: 'Obtiene las materias que el estudiante puede cursar AHORA (tiene las correlativas aprobadas pero NO aprobó la materia). USAR SIEMPRE cuando pregunten "qué puedo cursar" o "qué materias me faltan".',
         inputSchema: z.object({}),
@@ -262,19 +214,116 @@ INSTRUCCIONES:
             if (approvedCodes.has(m.codigo)) return false
             if (!m.correlativas || m.correlativas.length === 0) return true
             return m.correlativas.every((c: any) => approvedCodes.has(c.correlativa_codigo))
-          }).map((m: any) => ({
-            codigo: m.codigo,
-            nombre: m.nombre,
-            anio: m.anio,
-            cuatrimestre: m.cuatrimestre,
-            horas: m.horas,
-            correlativas_requeridas: m.correlativas?.length || 0,
-          }))
+          })
+
+          // Calcular dependientes y score para cada materia disponible
+          const availableWithScore = available.map((m: any) => {
+            const dependientes = (subjects || []).filter((s: any) =>
+              s.correlativas?.some((c: any) => c.correlativa_codigo === m.codigo)
+            ).length
+
+            return {
+              codigo: m.codigo,
+              nombre: m.nombre,
+              anio: m.anio,
+              cuatrimestre: m.cuatrimestre,
+              horas: m.horas,
+              correlativas_requeridas: m.correlativas?.length || 0,
+              dependientes_directos: dependientes,
+              score_importancia: dependientes * 2 + (maxYear - parseInt(m.anio || '1')) * 0.3,
+            }
+          }).sort((a, b) => b.score_importancia - a.score_importancia)
 
           return {
-            materias_disponibles: available,
-            total_disponibles: available.length,
+            materias_disponibles: availableWithScore,
+            total_disponibles: availableWithScore.length,
             total_aprobadas: approvedCodes.size,
+          }
+        },
+      },
+
+      obtener_mejores_materias_para_cursar: {
+        description: 'Obtiene las MEJORES materias para cursar AHORA, combinando: disponibilidad (correlativas OK), impacto (scoring) y proximidad temporal. USAR SIEMPRE para "qué me conviene", "mejores materias", "qué debería cursar".',
+        inputSchema: z.object({
+          limite: z.number().optional().describe('Cantidad de materias a devolver (default: 5)'),
+        }),
+        execute: async ({ limite = 5 }: { limite?: number }) => {
+          if (!careerId) {
+            return { error: 'No se especificó una carrera' }
+          }
+
+          const approvedCodes = new Set(approvedSubjects.map(m => m.code))
+
+          const { data: subjects, error } = await supabase
+            .from('materias')
+            .select(`
+              id,
+              codigo,
+              nombre,
+              anio,
+              cuatrimestre,
+              horas,
+              correlativas!correlativas_materia_id_fkey(
+                correlativa_codigo
+              )
+            `)
+            .eq('carrera_id', careerId)
+
+          if (error) return { error: error.message }
+
+          // Filtrar solo materias disponibles (no aprobadas + correlativas OK)
+          const available = (subjects || []).filter((m: any) => {
+            if (approvedCodes.has(m.codigo)) return false
+            if (!m.correlativas || m.correlativas.length === 0) return true
+            return m.correlativas.every((c: any) => approvedCodes.has(c.correlativa_codigo))
+          })
+
+          if (available.length === 0) {
+            return {
+              mejores_materias: [],
+              mensaje: 'No hay materias disponibles para cursar. Verifica tus correlativas.',
+            }
+          }
+
+          // Calcular dependientes para cada materia
+          const materiasConDependientes = available.map((m: any) => {
+            const dependientes = (subjects || []).filter((s: any) =>
+              s.correlativas?.some((c: any) => c.correlativa_codigo === m.codigo)
+            ).length
+            return { ...m, dependientes }
+          })
+
+          // Encontrar máximo de dependientes para normalizar
+          const maxDependientes = Math.max(...materiasConDependientes.map((m: any) => m.dependientes), 1)
+
+          // Calcular score final: 50% impacto + 50% proximidad
+          const materiasConScore = materiasConDependientes.map((m: any) => {
+            const impactoNorm = m.dependientes / maxDependientes
+            const anio = parseInt(m.anio || '1')
+            const proximidad = 1 - (anio - 1) / maxYear
+
+            const scoreFinal = (impactoNorm * 0.5) + (proximidad * 0.5)
+
+            return {
+              codigo: m.codigo,
+              nombre: m.nombre,
+              anio: m.anio,
+              cuatrimestre: m.cuatrimestre,
+              horas: m.horas,
+              dependientes_directos: m.dependientes,
+              score_impacto: Math.round(impactoNorm * 100) / 100,
+              score_proximidad: Math.round(proximidad * 100) / 100,
+              score_final: Math.round(scoreFinal * 100) / 100,
+              razon: m.dependientes > 0
+                ? `Desbloquea ${m.dependientes} materia${m.dependientes > 1 ? 's' : ''}`
+                : 'Sin materias dependientes (pero disponible para cursar)',
+            }
+          }).sort((a, b) => b.score_final - a.score_final)
+
+          return {
+            mejores_materias: materiasConScore.slice(0, limite),
+            total_disponibles: materiasConScore.length,
+            criterio: 'Score final = 50% impacto (materias que desbloquea) + 50% proximidad (años tempranos primero)',
           }
         },
       },
