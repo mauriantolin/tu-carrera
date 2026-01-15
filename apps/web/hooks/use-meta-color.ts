@@ -15,14 +15,12 @@ export function useMetaColor() {
       : META_THEME_COLORS.dark
   }, [resolvedTheme])
 
-  const setMetaColor = React.useCallback((color: string) => {
+  // Sincronizar automáticamente el meta tag cuando cambia el tema
+  React.useEffect(() => {
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", color)
-  }, [])
+      ?.setAttribute("content", metaColor)
+  }, [metaColor])
 
-  return {
-    metaColor,
-    setMetaColor,
-  }
+  return { metaColor }
 }

@@ -1,93 +1,9 @@
 @import "tailwindcss";
-/* @import "@tailwindcss/typography"; */
-@source "../../../apps/**/*.{ts,tsx}";
-@source "../../../components/**/*.{ts,tsx}";
-@source "../**/*.{ts,tsx}";
-
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0 16);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0 16);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0 16);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.2 0 16);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --maroon: oklch(0.35 0.15 350);
-  --success: oklch(0.65 0.2 145);
-  --blocked: oklch(0.55 0 0);
-}
-
-.dark {
-  --background: oklch(0.2 0 16);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.2 0 16);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.2 0 16);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-  --maroon: oklch(0.35 0.15 350);
-  --success: oklch(0.7 0.18 145);
-  --blocked: oklch(0.45 0 0);
-}
-
 @theme inline {
-  --font-instrument-serif:Instrument Serif, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; 
-  --font-display: "Besley", ui-sans-serif, system-ui, sans-serif;
+  --color-black: #000;
+  --color-white: #fff;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -107,126 +23,185 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-maroon: var(--maroon);
   --color-success: var(--success);
   --color-blocked: var(--blocked);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 7%);
+  --card: hsl(45 18% 96%);
+  --card-foreground: hsl(240 10% 3.9%);
+  --popover: hsl(45 18% 96%);
+  --popover-foreground: hsl(240 10% 3.9%);
+  --primary: hsl(240 5.9% 10%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(40 11% 89%);
+  --secondary-foreground: hsl(240 5.9% 10%);
+  --muted: hsl(40 11% 89%);
+  --muted-foreground: hsl(0 0% 38%);
+  --accent: hsl(40 10% 94%);
+  --accent-foreground: hsl(240 5.9% 10%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(45 5% 85%);
+  --input: hsl(240 5.9% 90%);
+  --ring: hsl(240 5.9% 10%);
+  --radius: 0.5rem;
+  --success: hsl(142 76% 36%);
+  --blocked: hsl(0 0% 45%);
+  /* Chart colors */
+  --chart-grid-stroke: #e6e6e6;
+  --chart-axis-text: #707070;
+  --chart-reference-line-stroke: #e6e6e6;
+  --chart-reference-label: #707070;
+  --chart-actual-line: #000000;
+  --chart-forecast-line: #666666;
+  --chart-tooltip-cursor: #666666;
+  --chart-pattern-bg: white;
+  --chart-pattern-stroke: #707070;
+  --chart-bar-fill: #000000;
+  --chart-bar-fill-secondary: #6666664d;
+  --chart-gradient-start: #707070;
+  --chart-gradient-end: #000000;
+  --chart-line-secondary: #666666;
+}
+
+.dark {
+  --background: hsl(0 0% 5%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(0 0% 7%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(0 0% 7%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(240 5.9% 10%);
+  --secondary: hsl(0 0% 7%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(0 0% 11%);
+  --muted-foreground: hsl(0 0% 38%);
+  --accent: hsl(0 0% 11%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(359 100% 61%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 11%);
+  --input: hsl(0 0% 11%);
+  --ring: hsl(240 4.9% 83.9%);
+  --success: hsl(142 76% 45%);
+  --blocked: hsl(0 0% 55%);
+  /* Chart colors */
+  --chart-grid-stroke: #1d1d1d;
+  --chart-axis-text: #666666;
+  --chart-reference-line-stroke: #333333;
+  --chart-reference-label: #666666;
+  --chart-actual-line: #ffffff;
+  --chart-forecast-line: #999999;
+  --chart-tooltip-cursor: #999999;
+  --chart-pattern-bg: #0c0c0c;
+  --chart-pattern-stroke: #666666;
+  --chart-bar-fill: white;
+  --chart-bar-fill-secondary: #6666664d;
+  --chart-gradient-start: #666666;
+  --chart-gradient-end: #ffffff;
+  --chart-line-secondary: #999999;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+[type="search"]::-webkit-search-cancel-button,
+[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+@keyframes dialog-overlay-show {
+  from {
+    opacity: 0;
   }
-  body {
-    @apply bg-background text-foreground;
+  to {
+    opacity: 1;
   }
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
-}
-
-.shake-animation {
-  animation: shake 0.5s ease-in-out;
-}
-
-/* Floating Toolbar Animations */
-@keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(128, 0, 32, 0.5), 0 0 40px rgba(128, 0, 32, 0.3), 0 0 60px rgba(128, 0, 32, 0.1);
+@keyframes dialog-overlay-hide {
+  from {
+    opacity: 1;
   }
-  50% {
-    box-shadow: 0 0 30px rgba(128, 0, 32, 0.7), 0 0 50px rgba(128, 0, 32, 0.5), 0 0 80px rgba(128, 0, 32, 0.2);
+  to {
+    opacity: 0;
   }
 }
 
-@keyframes glow-ring {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-
-.floating-toolbar-glow {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-.floating-toolbar-ring {
-  animation: glow-ring 1.5s ease-out infinite;
-}
-
-.floating-toolbar-ring-delayed {
-  animation: glow-ring 1.5s ease-out infinite;
-  animation-delay: 0.5s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .floating-toolbar-glow,
-  .floating-toolbar-ring,
-  .floating-toolbar-ring-delayed {
-    animation: none;
+@keyframes dialog-content-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
-/* ReactFlow Controls - Dark Mode Support */
-.dark .react-flow__controls {
-  background-color: rgb(39 39 42 / 0.95); /* zinc-800 with opacity */
-  border-color: rgb(63 63 70); /* zinc-700 */
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+@keyframes dialog-content-hide {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
 }
 
-.dark .react-flow__controls-button {
-  background-color: rgb(39 39 42); /* zinc-800 */
-  border-color: rgb(63 63 70); /* zinc-700 */
-  color: rgb(250 250 250); /* zinc-50 */
-  fill: rgb(250 250 250); /* zinc-50 */
+.loading-ellipsis:after {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: bottom;
+  -webkit-animation: ellipsis steps(4, end) 900ms infinite;
+  animation: ellipsis steps(4, end) 900ms infinite;
+  content: "\2026";
+  width: 0px;
 }
 
-.dark .react-flow__controls-button:hover {
-  background-color: rgb(63 63 70); /* zinc-700 */
+@keyframes ellipsis {
+  to {
+    width: 1.25em;
+  }
 }
 
-.dark .react-flow__controls-button svg {
-  fill: rgb(250 250 250); /* zinc-50 */
+@-webkit-keyframes ellipsis {
+  to {
+    width: 1.25em;
+  }
 }
 
-.dark .react-flow__controls-button svg path {
-  fill: rgb(250 250 250); /* zinc-50 */
+/* Date picker */
+.rdp-tbody .rdp-button {
+  border-radius: 100%;
 }
 
-/* ReactFlow MiniMap - Dark Mode Support */
-.dark .react-flow__minimap {
-  background-color: rgb(39 39 42 / 0.95); /* zinc-800 with opacity */
-  border-color: rgb(63 63 70); /* zinc-700 */
-}
-
-/* ReactFlow Attribution - Dark Mode Support */
-.dark .react-flow__attribution {
-  background-color: rgb(39 39 42 / 0.8);
-}
-
-.dark .react-flow__attribution a {
-  color: rgb(161 161 170); /* zinc-400 */
-}
-
-/* Custom cursor - hide default cursor */
-.hide-cursor,
-.hide-cursor * {
-  cursor: none !important;
+.aria-selected\:text-accent-foreground[aria-selected="true"] {
+  border-radius: 0px;
 }

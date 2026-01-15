@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import {
   currentCareerIdAtom,
   curriculumAtom,
   completedSubjectsAtom,
-  subjectVotesAtom,
   availableSubjectsAtom,
   shakingSubjectsAtom,
   selectedSubjectAtom,
@@ -27,7 +26,8 @@ export function useStudyPlanInit(careerId: string, curriculum: ProcessedCurricul
   const setOriginalPositions = useSetAtom(originalPositionsAtom)
   const prevCareerIdRef = useRef<string>('')
 
-  useEffect(() => {
+  // useLayoutEffect corre síncronamente antes del paint, evitando flash de contenido
+  useLayoutEffect(() => {
     if (careerId !== prevCareerIdRef.current) {
       setCurrentCareerId(careerId)
       setCurriculum(curriculum)
@@ -52,7 +52,6 @@ export function useStudyPlan() {
   const mounted = useMounted()
   const curriculum = useAtomValue(curriculumAtom)
   const [completedSubjects, setCompletedSubjects] = useAtom(completedSubjectsAtom)
-  const [subjectVotes, setSubjectVotes] = useAtom(subjectVotesAtom)
   const availableSubjects = useAtomValue(availableSubjectsAtom)
   const [shakingSubjects, setShakingSubjects] = useAtom(shakingSubjectsAtom)
   const [selectedSubject, setSelectedSubject] = useAtom(selectedSubjectAtom)
@@ -111,13 +110,6 @@ export function useStudyPlan() {
     }
   }, [curriculum, setSelectedSubject, setIsDialogOpen])
 
-  // Votar por una materia
-  const vote = useCallback((subjectId: string, delta: number) => {
-    setSubjectVotes(prev => ({
-      ...prev,
-      [subjectId]: Math.max(0, (prev[subjectId] || 0) + delta),
-    }))
-  }, [setSubjectVotes])
 
   // Cerrar dialog
   const closeDialog = useCallback(() => {
@@ -131,7 +123,6 @@ export function useStudyPlan() {
     curriculum,
     completedSubjects,
     availableSubjects,
-    subjectVotes,
     shakingSubjects,
     selectedSubject,
     isDialogOpen,
@@ -140,7 +131,6 @@ export function useStudyPlan() {
     // Acciones
     toggleSubject,
     showInfo,
-    vote,
     closeDialog,
     resetState,
     setIsDialogOpen,
@@ -155,14 +145,12 @@ export function useSubjectState(subjectId: string) {
   const completedSubjects = useAtomValue(completedSubjectsAtom)
   const availableSubjects = useAtomValue(availableSubjectsAtom)
   const shakingSubjects = useAtomValue(shakingSubjectsAtom)
-  const subjectVotes = useAtomValue(subjectVotesAtom)
 
   const isCompleted = completedSubjects.has(subjectId)
   const isAvailable = availableSubjects.has(subjectId)
   const isBlocked = !isCompleted && !isAvailable
   const isShaking = shakingSubjects.has(subjectId)
   const shakingColor = shakingSubjects.get(subjectId) || 'red'
-  const votes = subjectVotes[subjectId] || 0
 
   return {
     isCompleted,
@@ -170,6 +158,5 @@ export function useSubjectState(subjectId: string) {
     isBlocked,
     isShaking,
     shakingColor,
-    votes,
   }
 }

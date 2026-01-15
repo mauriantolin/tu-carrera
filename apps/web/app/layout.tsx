@@ -1,10 +1,11 @@
 import { Inter, Besley, Instrument_Serif, Geist, Geist_Mono } from "next/font/google"
 import type { Metadata } from "next"
 import { siteConfig } from "@/lib/config"
-
-
-import "@workspace/ui/globals.css"
+import "@/styles/globals.css"
+import "@workspace/ui/styles/globals.css"
 import { Providers } from "@/components/providers"
+import SiteHeader from "@/components/site-header"
+import Link from "next/link"
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -62,9 +63,33 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontMono.variable} ${inter.variable} ${besley.variable} ${instrumentSerif.variable} font-sans antialiased `}
+        className={`${fontSans.variable} ${fontMono.variable} ${inter.variable} ${besley.variable} ${instrumentSerif.variable} font-sans antialiased pt-24`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+              <SiteHeader>
+                <nav className="hidden md:flex items-center gap-8">
+                      <Link
+                      href="/#features"
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                      Características
+                      </Link>
+                      <Link
+                      href="/#how-it-works"
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                      Cómo funciona
+                      </Link>
+                      <Link
+                      href="/#faq"
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                      FAQ
+                      </Link>
+                  </nav>
+              </SiteHeader> 
+              {children}
+        </Providers>
       </body>
     </html>
   )

@@ -15,14 +15,6 @@ export const completedSubjectsByCareerAtom = atomWithStorage<Record<string, stri
   {}
 )
 
-/**
- * Votos por materia por carrera - persistido en localStorage
- * Key: careerId, Value: Record<subjectId, voteCount>
- */
-export const votesByCareerAtom = atomWithStorage<Record<string, Record<string, number>>>(
-  'study-plan:votes',
-  {}
-)
 
 // =============================================================================
 // SESSION ATOMS (no persistence)
@@ -93,33 +85,6 @@ export const completedSubjectsAtom = atom(
 )
 
 /**
- * Atom derivado para votos de la carrera actual
- */
-export const subjectVotesAtom = atom(
-  (get) => {
-    const careerId = get(currentCareerIdAtom)
-    const allVotes = get(votesByCareerAtom)
-    return allVotes[careerId] || {}
-  },
-  (get, set, update: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => {
-    const careerId = get(currentCareerIdAtom)
-    if (!careerId) return
-
-    const allVotes = get(votesByCareerAtom)
-    const currentVotes = allVotes[careerId] || {}
-
-    const newVotes = typeof update === 'function'
-      ? update(currentVotes)
-      : update
-
-    set(votesByCareerAtom, {
-      ...allVotes,
-      [careerId]: newVotes
-    })
-  }
-)
-
-/**
  * Materias disponibles para cursar (todas las correlativas aprobadas)
  */
 export const availableSubjectsAtom = atom((get) => {
@@ -164,12 +129,6 @@ export const resetStudyPlanStateAtom = atom(
       [careerId]: []
     })
 
-    // Limpiar votos
-    const allVotes = get(votesByCareerAtom)
-    set(votesByCareerAtom, {
-      ...allVotes,
-      [careerId]: {}
-    })
 
     // Limpiar estado de UI
     set(selectedSubjectAtom, null)

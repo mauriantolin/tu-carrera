@@ -28,6 +28,8 @@ export const Z_INDEX = {
   TOAST: 80,
   /** Overlays críticos (ej: loading global) */
   OVERLAY: 90,
+  /** Chat flotante */
+  FLOATING_CHAT: 100,
 } as const
 
 /** Tipo para los valores de z-index */

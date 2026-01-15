@@ -1,7 +1,51 @@
 import { openai } from '@ai-sdk/openai'
-import { streamText, embed, convertToModelMessages, type UIMessage, stepCountIs } from 'ai'
+import OpenAI from 'openai'
+import {
+  streamText,
+  convertToModelMessages,
+  generateObject,
+  stepCountIs,
+  type UIMessage,
+} from 'ai'
+
+// Direct OpenAI client for embeddings (workaround for AI SDK v6 bug)
+const openaiClient = new OpenAI()
 import { createClientDb } from '@/utils/db/server'
 import { z } from 'zod'
+
+// Import types
+import { type AgentContext } from '@/lib/agents/types'
+import { DATABASE_SCHEMA, isReadOnlyQuery, sanitizeQuery } from '@/lib/agents/schema'
+
+// =============================================================================
+// SYSTEM PROMPT
+// =============================================================================
+
+const systemPrompt = `Eres un asistente academico de UADE llamado Titulin.
+Ayudas a estudiantes con informacion sobre materias, correlativas y planificacion.
+Responde en espanol, de forma clara y concisa.
+
+REGLAS CRITICAS:
+1. NUNCA inventes informacion. Solo usa datos de la base de datos.
+2. Para cualquier consulta de datos -> USA consulta_sql
+3. Para buscar temas especificos -> USA buscar_contenidos
+4. Para ordenar materias pendientes -> USA ordenar_materias_pendientes
+5. Si no encuentras la informacion, dilo claramente.
+
+HERRAMIENTAS:
+- consulta_sql: Genera y ejecuta queries SQL para obtener datos
+- buscar_contenidos: Busqueda semantica de temas en materias
+- ordenar_materias_pendientes: Ordena materias pendientes topologicamente (Khan)
+
+ESQUEMA DE BASE DE DATOS:
+- materias(id, codigo, nombre, anio, cuatrimestre, horas, carrera_id)
+- correlativas(materia_id, correlativa_codigo, correlativa_materia_id)
+- contenidos(id, materia_id, contenido, orden)
+- carreras(id, nombre, facultad_id)`
+
+// =============================================================================
+// CONTEXT MANAGEMENT
+// =============================================================================
 
 interface ApprovedSubject {
   code: string
@@ -9,12 +53,18 @@ interface ApprovedSubject {
   year: string
 }
 
+let currentContext: AgentContext | null = null
+
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
+
 export async function POST(req: Request) {
   const {
     messages,
     careerId: rawCareerId,
     approvedSubjects = [],
-    maxYear = 5
+    maxYear = 5,
   }: {
     messages: UIMessage[]
     careerId?: string
@@ -25,342 +75,354 @@ export async function POST(req: Request) {
   const careerId = rawCareerId && rawCareerId.length > 0 ? rawCareerId : null
   const supabase = await createClientDb()
 
-  const studentProgress = approvedSubjects.length > 0
-    ? `\n\nESTADO ACTUAL DEL ESTUDIANTE:
-- Materias aprobadas (${approvedSubjects.length}): ${approvedSubjects.map(m => m.name).join(', ')}
-- Códigos aprobados: ${approvedSubjects.map(m => m.code).join(', ')}
+  // Build context for agents
+  if (careerId) {
+    currentContext = {
+      careerId,
+      approvedSubjects,
+      maxYear,
+      supabase,
+    }
+  }
 
-IMPORTANTE: Usa esta información para dar consejos personalizados. Si el estudiante pregunta qué cursar, considera qué materias ya aprobó y cuáles puede desbloquear ahora.`
-    : '\n\nESTADO ACTUAL: El estudiante no tiene materias marcadas como aprobadas aún.'
+  // Build dynamic system prompt with approved subjects
+  const dynamicSystemPrompt = `${systemPrompt}
+
+Materias aprobadas del estudiante:
+${approvedSubjects.length > 0
+    ? approvedSubjects.map(s => `- ${s.code}: ${s.name} (Ano ${s.year})`).join('\n')
+    : 'Ninguna (estudiante nuevo)'
+  }
+
+Carrera ID: ${careerId || 'No especificada'}
+Ano maximo de la carrera: ${maxYear}`
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
-    system: `Eres un asistente académico experto de la universidad UADE llamado Titulín.
-Ayudas a estudiantes con información estratégica sobre materias, contenidos, correlativas y planificación académica.
-Responde en español, de forma clara y con contexto útil.
+    model: openai('gpt-5-mini'),
+    system: dynamicSystemPrompt,
+    messages: await convertToModelMessages(messages),
 
-DATOS DE LA CARRERA:
-- Duración: ${maxYear} años
-${studentProgress}
-
-REGLA OBLIGATORIA - RECOMENDACIONES DE MATERIAS:
-Cuando el usuario pregunte qué materias cursar, cuáles le convienen, o pida recomendaciones:
-1. USA obtener_mejores_materias_para_cursar - Esta herramienta combina disponibilidad + impacto + proximidad temporal
-2. Las materias que retorna YA están filtradas (no incluye aprobadas) y ordenadas por score óptimo
-3. Explica POR QUÉ cada materia es buena opción usando el campo "razon" y los scores
-
-HERRAMIENTAS DISPONIBLES:
-- obtener_mejores_materias_para_cursar: USAR para "qué me conviene", "mejores materias", "qué cursar", "materias críticas". Combina disponibilidad + impacto + proximidad.
-- obtener_materias_disponibles: Lista TODAS las materias que puede cursar ahora (con scores).
-- analizar_materia: Info completa de una materia específica.
-- buscar_materias_por_anio: Materias de un año específico.
-- buscar_contenidos: Buscar temas o conceptos específicos.
-- obtener_estructura_carrera: Estructura completa del plan.
-
-REGLAS CRÍTICAS:
-1. NUNCA recomiendes materias que el estudiante ya aprobó - están listadas arriba en "Materias aprobadas"
-2. Prioriza materias de años cercanos al progreso actual, no saltes varios años
-3. Siempre menciona qué materias desbloquea cada recomendación
-4. Usa el score_final para justificar tus recomendaciones (combina impacto y proximidad)
-5. Si el usuario pregunta por "las mejores" o "qué le conviene", usa obtener_mejores_materias_para_cursar`,
-    messages: convertToModelMessages(messages),
+    // ==========================================================================
+    // TOOLS
+    // ==========================================================================
     tools: {
-      buscar_materias_por_anio: {
-        description: 'Busca todas las materias de un año específico de la carrera. Útil para preguntas como "materias de 4to año" o "qué materias hay en primer año"',
-        inputSchema: z.object({
-          anio: z.string().describe('Año de la carrera (1, 2, 3, 4, 5, 6, 7, 8)'),
-        }),
-        execute: async ({ anio }: { anio: string }) => {
-          if (!careerId) {
-            return { error: 'No se especificó una carrera' }
-          }
-          const { data, error } = await supabase
-            .from('materias')
-            .select('codigo, nombre, horas, cuatrimestre')
-            .eq('carrera_id', careerId)
-            .eq('anio', anio)
-            .order('cuatrimestre')
-          if (error) return { error: error.message }
-          return data || []
-        },
-      },
-
+      // ========================================================================
+      // TOOL: buscar_contenidos
+      // ========================================================================
       buscar_contenidos: {
-        description: 'Búsqueda semántica en los contenidos de las materias. Útil para preguntas sobre temas específicos como "materias que enseñan programación" o "dónde aprendo sobre bases de datos"',
+        description: `Busqueda semantica en los contenidos de las materias.
+          USAR para: temas especificos como "materias que ensenan programacion" o "donde aprendo sobre bases de datos".
+          Retorna materias relevantes con similitud.`,
         inputSchema: z.object({
           query: z.string().describe('Tema o concepto a buscar'),
         }),
         execute: async ({ query }: { query: string }) => {
           try {
-            const { embedding } = await embed({
-              model: openai.embedding('text-embedding-3-small'),
-              value: query,
+            // Generate embedding using direct OpenAI client (workaround for AI SDK v6 bug)
+            console.log('[buscar_contenidos] Generating embedding for:', query)
+            const embedResponse = await openaiClient.embeddings.create({
+              model: 'text-embedding-3-small',
+              input: query,
             })
+
+            const embedding = embedResponse.data[0]?.embedding
+            if (!embedding || !Array.isArray(embedding)) {
+              console.error('[buscar_contenidos] Invalid embedding result')
+              return { error: 'Error generando embedding: resultado invalido', query }
+            }
+
+            console.log('[buscar_contenidos] Embedding generated, length:', embedding.length)
+
+            // Search in database
             const { data, error } = await supabase.rpc('search_contenidos', {
               query_embedding: embedding,
               carrera_id_filter: careerId,
               match_threshold: 0.4,
               match_count: 5,
             })
-            if (error) return { error: error.message }
-            return data || []
-          } catch {
-            return { error: 'Error en búsqueda semántica' }
+
+            if (error) {
+              console.error('[buscar_contenidos] Supabase error:', error)
+              return { error: error.message, query }
+            }
+
+            console.log('[buscar_contenidos] Results found:', data?.length || 0)
+            return { resultados: data || [], query }
+          } catch (err) {
+            console.error('[buscar_contenidos] Error:', err)
+            return {
+              error: err instanceof Error ? err.message : 'Error en busqueda semantica',
+              query
+            }
           }
         },
       },
 
-      analizar_materia: {
-        description: 'Análisis completo de una materia: prerrequisitos, materias que desbloquea, y score de importancia. Usar SIEMPRE para preguntas sobre materias específicas.',
+      // ========================================================================
+      // TOOL: consulta_sql
+      // ========================================================================
+      consulta_sql: {
+        description: `Ejecuta una consulta SQL para obtener informacion de la base de datos.
+          USAR SIEMPRE para: buscar materias, correlativas, estadisticas, estructura de carrera.
+          Solo genera queries SELECT (read-only).
+
+          TABLAS DISPONIBLES:
+          - materias: id, codigo, nombre, anio, cuatrimestre, horas, carrera_id
+          - correlativas: materia_id, correlativa_codigo, correlativa_materia_id
+          - contenidos: id, materia_id, contenido, orden
+          - carreras: id, nombre, facultad_id
+
+          EJEMPLOS DE QUERIES:
+          - Materias de un ano: SELECT * FROM materias WHERE carrera_id = 'X' AND anio = '2'
+          - Correlativas: SELECT c.*, m.nombre FROM correlativas c JOIN materias m ON c.correlativa_materia_id = m.id
+          - Materias que desbloquea: SELECT m.* FROM materias m JOIN correlativas c ON c.materia_id = m.id WHERE c.correlativa_codigo = 'X'`,
         inputSchema: z.object({
-          materia_nombre: z.string().describe('Nombre o parte del nombre de la materia a analizar'),
+          pregunta: z.string().min(5)
+            .describe('Pregunta en lenguaje natural sobre los datos'),
         }),
-        execute: async ({ materia_nombre }: { materia_nombre: string }) => {
-          if (!careerId) {
-            return { error: 'No se especificó una carrera' }
+        execute: async ({ pregunta }: { pregunta: string }) => {
+          if (!currentContext) {
+            return { query: '', data: [], rowCount: 0, error: 'Sin contexto de carrera' }
           }
 
-          const { data: rpcData, error: rpcError } = await supabase.rpc('analizar_materia', {
-            materia_nombre_param: materia_nombre,
-            carrera_id_param: careerId,
-          })
+          try {
+            // Generate SQL query using LLM
+            const { object: queryObj } = await generateObject({
+              model: openai('gpt-5-mini'),
+              system: `${DATABASE_SCHEMA}
 
-          if (!rpcError && rpcData && rpcData.length > 0) {
-            return rpcData
-          }
+IMPORTANTE: La carrera_id es: '${currentContext.careerId}'
+Siempre incluye este filtro en queries de materias.`,
+              prompt: `Genera una query SQL SELECT para responder: "${pregunta}"`,
+              schema: z.object({
+                query: z.string().describe('Query SQL SELECT valida'),
+                explanation: z.string().describe('Explicacion breve de la query'),
+              }),
+            })
 
-          const { data: subjects, error } = await supabase
-            .from('materias')
-            .select(`
-              id,
-              codigo,
-              nombre,
-              anio,
-              cuatrimestre,
-              horas,
-              correlativas!correlativas_materia_id_fkey(
-                correlativa_codigo,
-                correlativa:materias!correlativas_correlativa_materia_id_fkey(nombre, codigo)
-              )
-            `)
-            .eq('carrera_id', careerId)
-            .ilike('nombre', `%${materia_nombre}%`)
+            // Validate read-only
+            if (!isReadOnlyQuery(queryObj.query)) {
+              return {
+                query: queryObj.query,
+                data: [],
+                rowCount: 0,
+                error: 'Solo se permiten queries SELECT (read-only)',
+              }
+            }
 
-          if (error) {
-            return { error: error.message }
-          }
+            // Sanitize and execute
+            const safeQuery = sanitizeQuery(queryObj.query, 50)
 
-          const results = await Promise.all((subjects || []).map(async (m: any) => {
-            const { data: dependents } = await supabase
-              .from('correlativas')
-              .select(`
-                materia:materias!correlativas_materia_id_fkey(codigo, nombre, anio)
-              `)
-              .eq('correlativa_codigo', m.codigo)
+            // Use Supabase raw SQL (via RPC or direct)
+            const { data, error } = await currentContext.supabase
+              .rpc('execute_readonly_query', { sql_query: safeQuery })
 
-            const unlocks = (dependents || [])
-              .map((d: any) => d.materia)
-              .filter((d: any) => d !== null)
+            if (error) {
+              return {
+                query: safeQuery,
+                data: [],
+                rowCount: 0,
+                error: error.message,
+              }
+            }
 
             return {
-              codigo: m.codigo,
-              nombre: m.nombre,
-              anio: m.anio,
-              cuatrimestre: m.cuatrimestre,
-              horas: m.horas,
-              prerrequisitos: (m.correlativas || [])
-                .map((c: any) => c.correlativa)
-                .filter((c: any) => c !== null),
-              desbloquea: unlocks,
-              dependientes_directos: unlocks.length,
-              score_importancia: unlocks.length * 2 + (maxYear - parseInt(m.anio || '1')) * 0.3,
+              query: safeQuery,
+              explanation: queryObj.explanation,
+              data: data || [],
+              rowCount: data?.length || 0,
             }
-          }))
-
-          return results
+          } catch (err) {
+            return {
+              query: '',
+              data: [],
+              rowCount: 0,
+              error: err instanceof Error ? err.message : 'Error generando query',
+            }
+          }
         },
       },
 
-      obtener_materias_disponibles: {
-        description: 'Obtiene las materias que el estudiante puede cursar AHORA (tiene las correlativas aprobadas pero NO aprobó la materia). USAR SIEMPRE cuando pregunten "qué puedo cursar" o "qué materias me faltan".',
-        inputSchema: z.object({}),
-        execute: async () => {
+      // ========================================================================
+      // TOOL: ordenar_materias_pendientes (Khan's Algorithm)
+      // ========================================================================
+      ordenar_materias_pendientes: {
+        description: `Ordena TODAS las materias pendientes usando ordenamiento topologico (Khan).
+          Agrupa materias por niveles respetando correlativas.
+          Desempata materias del mismo nivel por score (impacto + proximidad).
+          USAR para: "en que orden cursar", "plan de cursada", "roadmap", "mejores materias".
+
+          IMPORTANTE: Esta tool NO inventa datos, solo ordena lo que existe en la DB.`,
+        inputSchema: z.object({
+          incluir_optativas: z.boolean().optional()
+            .describe('Incluir materias optativas (default: true)'),
+        }),
+        execute: async ({ incluir_optativas = true }: { incluir_optativas?: boolean }) => {
           if (!careerId) {
-            return { error: 'No se especificó una carrera' }
+            return { error: 'No se especifico una carrera' }
           }
 
           const approvedCodes = new Set(approvedSubjects.map(m => m.code))
 
-          const { data: subjects, error } = await supabase
+          // 1. Get all subjects with correlativas
+          const { data: allSubjects, error } = await supabase
             .from('materias')
             .select(`
-              id,
-              codigo,
-              nombre,
-              anio,
-              cuatrimestre,
-              horas,
-              correlativas!correlativas_materia_id_fkey(
-                correlativa_codigo
-              )
-            `)
-            .eq('carrera_id', careerId)
-            .order('anio')
-            .order('cuatrimestre')
-
-          if (error) return { error: error.message }
-
-          const available = (subjects || []).filter((m: any) => {
-            if (approvedCodes.has(m.codigo)) return false
-            if (!m.correlativas || m.correlativas.length === 0) return true
-            return m.correlativas.every((c: any) => approvedCodes.has(c.correlativa_codigo))
-          })
-
-          // Calcular dependientes y score para cada materia disponible
-          const availableWithScore = available.map((m: any) => {
-            const dependientes = (subjects || []).filter((s: any) =>
-              s.correlativas?.some((c: any) => c.correlativa_codigo === m.codigo)
-            ).length
-
-            return {
-              codigo: m.codigo,
-              nombre: m.nombre,
-              anio: m.anio,
-              cuatrimestre: m.cuatrimestre,
-              horas: m.horas,
-              correlativas_requeridas: m.correlativas?.length || 0,
-              dependientes_directos: dependientes,
-              score_importancia: dependientes * 2 + (maxYear - parseInt(m.anio || '1')) * 0.3,
-            }
-          }).sort((a, b) => b.score_importancia - a.score_importancia)
-
-          return {
-            materias_disponibles: availableWithScore,
-            total_disponibles: availableWithScore.length,
-            total_aprobadas: approvedCodes.size,
-          }
-        },
-      },
-
-      obtener_mejores_materias_para_cursar: {
-        description: 'Obtiene las MEJORES materias para cursar AHORA, combinando: disponibilidad (correlativas OK), impacto (scoring) y proximidad temporal. USAR SIEMPRE para "qué me conviene", "mejores materias", "qué debería cursar".',
-        inputSchema: z.object({
-          limite: z.number().optional().describe('Cantidad de materias a devolver (default: 5)'),
-        }),
-        execute: async ({ limite = 5 }: { limite?: number }) => {
-          if (!careerId) {
-            return { error: 'No se especificó una carrera' }
-          }
-
-          const approvedCodes = new Set(approvedSubjects.map(m => m.code))
-
-          const { data: subjects, error } = await supabase
-            .from('materias')
-            .select(`
-              id,
-              codigo,
-              nombre,
-              anio,
-              cuatrimestre,
-              horas,
-              correlativas!correlativas_materia_id_fkey(
-                correlativa_codigo
-              )
+              id, codigo, nombre, anio, cuatrimestre, horas,
+              correlativas!correlativas_materia_id_fkey(correlativa_codigo)
             `)
             .eq('carrera_id', careerId)
 
           if (error) return { error: error.message }
+          if (!allSubjects?.length) return { error: 'No se encontraron materias' }
 
-          // Filtrar solo materias disponibles (no aprobadas + correlativas OK)
-          const available = (subjects || []).filter((m: any) => {
-            if (approvedCodes.has(m.codigo)) return false
-            if (!m.correlativas || m.correlativas.length === 0) return true
-            return m.correlativas.every((c: any) => approvedCodes.has(c.correlativa_codigo))
-          })
-
-          if (available.length === 0) {
-            return {
-              mejores_materias: [],
-              mensaje: 'No hay materias disponibles para cursar. Verifica tus correlativas.',
-            }
+          // 2. Filter pending subjects
+          type SubjectWithCorrelativas = {
+            id: string
+            codigo: string
+            nombre: string
+            anio: string
+            cuatrimestre: string
+            horas: number
+            correlativas: Array<{ correlativa_codigo: string }> | null
           }
 
-          // Calcular dependientes para cada materia
-          const materiasConDependientes = available.map((m: any) => {
-            const dependientes = (subjects || []).filter((s: any) =>
-              s.correlativas?.some((c: any) => c.correlativa_codigo === m.codigo)
+          let pendingSubjects = (allSubjects as SubjectWithCorrelativas[])
+            .filter(m => !approvedCodes.has(m.codigo))
+
+          if (!incluir_optativas) {
+            pendingSubjects = pendingSubjects.filter(m =>
+              !m.nombre.toLowerCase().includes('optativa')
+            )
+          }
+
+          if (!pendingSubjects.length) {
+            return { niveles: [], total_pendientes: 0, mensaje: 'No hay materias pendientes' }
+          }
+
+          const pendingCodes = new Set(pendingSubjects.map(m => m.codigo))
+
+          // 3. Calculate dependents count for scoring
+          const dependentsCount = new Map<string, number>()
+          for (const s of pendingSubjects) {
+            const count = pendingSubjects.filter(d =>
+              d.correlativas?.some(c => c.correlativa_codigo === s.codigo)
             ).length
-            return { ...m, dependientes }
-          })
+            dependentsCount.set(s.codigo, count)
+          }
 
-          // Encontrar máximo de dependientes para normalizar
-          const maxDependientes = Math.max(...materiasConDependientes.map((m: any) => m.dependientes), 1)
+          // 4. Calculate in-degree (pending correlativas)
+          const inDegree = new Map<string, number>()
+          for (const s of pendingSubjects) {
+            const pending = (s.correlativas || [])
+              .filter(c => pendingCodes.has(c.correlativa_codigo)).length
+            inDegree.set(s.codigo, pending)
+          }
 
-          // Calcular score final: 50% impacto + 50% proximidad
-          const materiasConScore = materiasConDependientes.map((m: any) => {
-            const impactoNorm = m.dependientes / maxDependientes
+          // 5. Calculate score_final
+          const maxDeps = Math.max(...Array.from(dependentsCount.values()), 1)
+          const scored = pendingSubjects.map(m => {
+            const deps = dependentsCount.get(m.codigo) || 0
             const anio = parseInt(m.anio || '1')
-            const proximidad = 1 - (anio - 1) / maxYear
+            const cuatri = parseInt(m.cuatrimestre || '1')
+            const impacto = deps / maxDeps
+            const proximidad = ((1 - (anio - 1) / maxYear) * 0.8) + (cuatri === 1 ? 0.2 : 0.14)
+            const score = Math.round((impacto * 0.3 + proximidad * 0.7) * 100) / 100
+            return { ...m, dependientes: deps, score_final: score }
+          })
 
-            const scoreFinal = (impactoNorm * 0.5) + (proximidad * 0.5)
+          // 6. Khan's Algorithm
+          type NivelMateria = {
+            codigo: string
+            nombre: string
+            anio: string
+            cuatrimestre: string
+            horas: number
+            dependientes: number
+            score_final: number
+          }
+          type NivelMaterias = { nivel: number; materias: NivelMateria[] }
 
-            return {
-              codigo: m.codigo,
-              nombre: m.nombre,
-              anio: m.anio,
-              cuatrimestre: m.cuatrimestre,
-              horas: m.horas,
-              dependientes_directos: m.dependientes,
-              score_impacto: Math.round(impactoNorm * 100) / 100,
-              score_proximidad: Math.round(proximidad * 100) / 100,
-              score_final: Math.round(scoreFinal * 100) / 100,
-              razon: m.dependientes > 0
-                ? `Desbloquea ${m.dependientes} materia${m.dependientes > 1 ? 's' : ''}`
-                : 'Sin materias dependientes (pero disponible para cursar)',
+          const result: NivelMaterias[] = []
+          const processed = new Set<string>()
+          let nivel = 0
+
+          while (processed.size < scored.length) {
+            const ready = scored
+              .filter(m => !processed.has(m.codigo) && inDegree.get(m.codigo) === 0)
+              .sort((a, b) => b.score_final - a.score_final)
+
+            if (!ready.length) {
+              // Cycle detected - add remaining as level -1
+              const remaining = scored.filter(m => !processed.has(m.codigo))
+              result.push({
+                nivel: -1,
+                materias: remaining.map(m => ({
+                  codigo: m.codigo,
+                  nombre: m.nombre,
+                  anio: m.anio,
+                  cuatrimestre: m.cuatrimestre,
+                  horas: m.horas,
+                  dependientes: m.dependientes,
+                  score_final: m.score_final,
+                }))
+              })
+              break
             }
-          }).sort((a, b) => b.score_final - a.score_final)
+
+            result.push({
+              nivel,
+              materias: ready.map(m => ({
+                codigo: m.codigo,
+                nombre: m.nombre,
+                anio: m.anio,
+                cuatrimestre: m.cuatrimestre,
+                horas: m.horas,
+                dependientes: m.dependientes,
+                score_final: m.score_final,
+              }))
+            })
+
+            // Update in-degrees
+            for (const s of ready) {
+              processed.add(s.codigo)
+              for (const dep of scored) {
+                if (dep.correlativas?.some(c => c.correlativa_codigo === s.codigo)) {
+                  inDegree.set(dep.codigo, Math.max(0, (inDegree.get(dep.codigo) || 0) - 1))
+                }
+              }
+            }
+            nivel++
+          }
 
           return {
-            mejores_materias: materiasConScore.slice(0, limite),
-            total_disponibles: materiasConScore.length,
-            criterio: 'Score final = 50% impacto (materias que desbloquea) + 50% proximidad (años tempranos primero)',
+            niveles: result,
+            total_pendientes: pendingSubjects.length,
+            total_niveles: result.length,
+            criterio: 'Khan + Score (30% impacto + 70% proximidad)',
+            nota: 'Nivel 0 = disponibles ahora. Nivel N = requiere completar niveles anteriores.',
           }
-        },
-      },
-
-      obtener_estructura_carrera: {
-        description: 'Obtiene la estructura completa de la carrera con todas las materias organizadas por año y cuatrimestre',
-        inputSchema: z.object({}),
-        execute: async () => {
-          if (!careerId) {
-            return { error: 'No se especificó una carrera' }
-          }
-          const { data, error } = await supabase
-            .from('materias')
-            .select('anio, cuatrimestre, codigo, nombre, horas')
-            .eq('carrera_id', careerId)
-            .order('anio')
-            .order('cuatrimestre')
-            .order('codigo')
-
-          if (error) return { error: error.message }
-
-          type SubjectRow = { anio: string; cuatrimestre: string; codigo: string; nombre: string; horas: number }
-          const grouped: Record<string, Record<string, Array<{ codigo: string; nombre: string; horas: number }>>> = {}
-          for (const m of (data || []) as SubjectRow[]) {
-            const yearKey = m.anio
-            const semesterKey = m.cuatrimestre
-            if (!grouped[yearKey]) grouped[yearKey] = {}
-            const yearGroup = grouped[yearKey]!
-            if (!yearGroup[semesterKey]) yearGroup[semesterKey] = []
-            yearGroup[semesterKey]!.push({ codigo: m.codigo, nombre: m.nombre, horas: m.horas })
-          }
-          return grouped
         },
       },
     },
-    stopWhen: stepCountIs(5),
+
+    // ==========================================================================
+    // EXECUTION CONTROL
+    // ==========================================================================
+
+    // Allow more steps: get materias -> validate -> respond
+    stopWhen: stepCountIs(7),
+
+    // Track tool calls for logging
+    onStepFinish: ({ toolCalls, text }) => {
+      if (toolCalls && toolCalls.length > 0) {
+        console.log('[Step]', {
+          toolCalls: toolCalls.map(tc => tc.toolName),
+          hasText: !!text,
+        })
+      }
+    },
   })
 
-  return result.toUIMessageStreamResponse()
+  return result.toUIMessageStreamResponse({ sendReasoning: true })
 }
